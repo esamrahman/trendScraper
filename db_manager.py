@@ -1,14 +1,15 @@
 """
-Database models for storing price data
+Database models and manager for storing price data
 Uses SQLAlchemy ORM for database operations
+Includes SKU-based product matching to handle URL and name changes
 """
 
 import os
-from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, DateTime, JSON, ForeignKey, Index
+from datetime import datetime, timedelta
+from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, DateTime, JSON, ForeignKey, Index, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 Base = declarative_base()
 
@@ -69,7 +70,7 @@ class PriceHistory(Base):
     in_stock = Column(Boolean, default=True)
 
     # Additional metadata
-    additional_info = Column(JSON)  # Store specs, brand, description
+    additional_info = Column(JSON)
 
     scraped_at = Column(DateTime, default=datetime.now, index=True)
 
@@ -87,7 +88,7 @@ class PriceHistory(Base):
 
 
 class DatabaseManager:
-    """Manage database operations"""
+    """Manage database operations with SKU-based product matching"""
 
     def __init__(self, db_url: str = None):
         if db_url is None:
@@ -117,7 +118,7 @@ class DatabaseManager:
 
         return supplier
 
-    # === PRODUCT OPERATIONS ===
+    # === PRODUCT OPERATIONS (IMPROVED WITH SKU-BASED MATCHING) ===
 
     def get_or_create_product(
             self,
@@ -128,13 +129,47 @@ class DatabaseManager:
             unit: str = "each",
             product_url: str = None
     ) -> ProductInfo:
-        """Get existing product or create new one"""
+        """
+        LEGACY METHOD - kept for backwards compatibility
+        Use get_or_create_product_by_sku instead
+        """
+        return self.get_or_create_product_by_sku(
+            sku=sku,
+            supplier_id=supplier_id,
+            name=name,
+            category=category,
+            unit=unit,
+            product_url=product_url
+        )
+
+    def get_or_create_product_by_sku(
+            self,
+            sku: str,
+            supplier_id: int,
+            name: str = None,
+            category: str = None,
+            unit: str = "each",
+            product_url: str = None
+    ) -> ProductInfo:
+        """
+        Get or create product using SKU as primary identifier
+        Updates product info if it exists but details changed
+
+        This prevents duplicate products when:
+        - Product name changes
+        - URL changes
+        - Description changes
+
+        As long as SKU stays the same, it's the same product!
+        """
+        # Try to find by SKU + supplier
         product = self.session.query(ProductInfo).filter_by(
             sku=sku,
             supplier_id=supplier_id
         ).first()
 
         if not product:
+            # Create new product
             product = ProductInfo(
                 sku=sku,
                 name=name,
@@ -145,23 +180,37 @@ class DatabaseManager:
             )
             self.session.add(product)
             self.session.commit()
-            print(f"Created product: {name} (SKU: {sku})")
+            print(f"✅ Created NEW product: {name} (SKU: {sku})")
         else:
-            # Update product info if it changed
+            # Product exists - check if we need to update info
             updated = False
-            if product.name != name:
+            changes = []
+
+            # Check name change
+            if name and product.name != name:
+                old_name = product.name
                 product.name = name
                 updated = True
-            if category and product.category != category:
-                product.category = category
-                updated = True
+                changes.append(f"Name: '{old_name}' → '{name}'")
+
+            # Check URL change
             if product_url and product.product_url != product_url:
                 product.product_url = product_url
                 updated = True
+                changes.append(f"URL updated")
+
+            # Check category change
+            if category and product.category != category:
+                product.category = category
+                updated = True
+                changes.append(f"Category updated")
 
             if updated:
                 product.last_updated = datetime.now()
                 self.session.commit()
+                print(f"📝 Updated product {sku}:")
+                for change in changes:
+                    print(f"   • {change}")
 
         return product
 
@@ -180,6 +229,60 @@ class DatabaseManager:
             query = query.join(Supplier).filter(Supplier.name == supplier_name)
 
         return query.all()
+
+    def find_duplicate_products(self) -> List[Dict]:
+        """
+        Find potential duplicate products
+        (same SKU with different IDs - shouldn't happen but check anyway)
+        """
+        # Find SKUs that appear more than once
+        duplicates = self.session.query(
+            ProductInfo.sku,
+            func.count(ProductInfo.id).label('count')
+        ).group_by(ProductInfo.sku).having(func.count(ProductInfo.id) > 1).all()
+
+        results = []
+        for sku, count in duplicates:
+            products = self.session.query(ProductInfo).filter_by(sku=sku).all()
+            results.append({
+                'sku': sku,
+                'count': count,
+                'products': [
+                    {
+                        'id': p.id,
+                        'name': p.name,
+                        'created': p.created_at
+                    }
+                    for p in products
+                ]
+            })
+
+        return results
+
+    def merge_duplicate_products(self, keep_id: int, merge_id: int) -> bool:
+        """
+        Merge two duplicate products
+        Move all price history from merge_id to keep_id
+        """
+        try:
+            # Update all price records to point to keep_id
+            self.session.query(PriceHistory).filter_by(
+                product_id=merge_id
+            ).update({'product_id': keep_id})
+
+            # Delete the duplicate product
+            product_to_delete = self.session.query(ProductInfo).get(merge_id)
+            if product_to_delete:
+                self.session.delete(product_to_delete)
+
+            self.session.commit()
+            print(f"✅ Merged product {merge_id} into {keep_id}")
+            return True
+
+        except Exception as e:
+            print(f"❌ Error merging products: {e}")
+            self.session.rollback()
+            return False
 
     # === PRICE OPERATIONS ===
 
@@ -209,6 +312,7 @@ class DatabaseManager:
     def save_product_from_scraper(self, product_data) -> bool:
         """
         Save product data from scraper
+        Uses SKU as primary identifier to prevent duplicates
         Expects product_data to be a Product object from scraper
         """
         try:
@@ -218,11 +322,11 @@ class DatabaseManager:
                 website="https://www.bunnings.com.au"
             )
 
-            # Get or create product
-            product = self.get_or_create_product(
+            # Use SKU-based matching (prevents duplicates!)
+            product = self.get_or_create_product_by_sku(
                 sku=product_data.sku,
-                name=product_data.name,
                 supplier_id=supplier.id,
+                name=product_data.name,
                 category=product_data.category,
                 unit=product_data.unit,
                 product_url=product_data.url
@@ -257,7 +361,6 @@ class DatabaseManager:
             days: int = 30
     ) -> List[PriceHistory]:
         """Get price history for a product"""
-        from datetime import timedelta
         cutoff_date = datetime.now() - timedelta(days=days)
 
         return self.session.query(PriceHistory) \
@@ -273,12 +376,8 @@ class DatabaseManager:
         Get products with price changes in the last N days
         Returns list of dicts with product info and price change
         """
-        from datetime import timedelta
-        from sqlalchemy import func
-
         cutoff_date = datetime.now() - timedelta(days=days)
 
-        # This is a complex query - get latest 2 prices for each product
         results = []
         products = self.get_all_products()
 
@@ -321,8 +420,6 @@ class DatabaseManager:
         Get current prices for products matching name pattern
         Returns comparison across all suppliers
         """
-        from sqlalchemy import func, and_
-
         # Find products matching pattern
         products = self.session.query(ProductInfo) \
             .filter(ProductInfo.name.like(f'%{product_name_pattern}%')) \
@@ -353,13 +450,12 @@ class DatabaseManager:
             'total_suppliers': self.session.query(Supplier).count(),
             'total_products': self.session.query(ProductInfo).count(),
             'total_price_records': self.session.query(PriceHistory).count(),
-            'products_in_stock': self.session.query(ProductInfo).join(PriceHistory) \
+            'products_in_stock': self.session.query(ProductInfo) \
+                .join(PriceHistory) \
                 .filter(PriceHistory.in_stock == True) \
                 .distinct() \
                 .count()
         }
-
-
 
 
 # Test the database
@@ -371,14 +467,16 @@ if __name__ == "__main__":
     # Create test data
     supplier = db.get_or_create_supplier("Bunnings", "https://bunnings.com.au")
 
-    product = db.get_or_create_product(
+    # Test 1: Create product
+    product = db.get_or_create_product_by_sku(
         sku="0340162",
-        name="Ecoply 2400x1200mm 9mm Plywood",
         supplier_id=supplier.id,
+        name="Ecoply 2400x1200mm 9mm Plywood",
         category="Building Materials",
         unit="per sheet"
     )
 
+    # Test 2: Save price
     db.save_price(
         product_id=product.id,
         supplier_id=supplier.id,
@@ -386,11 +484,40 @@ if __name__ == "__main__":
         in_stock=True
     )
 
-    # Get statistics
+    # Test 3: Update same product with new name (simulating product name change)
+    print("\n--- Testing SKU-based matching (product name change) ---")
+    product_updated = db.get_or_create_product_by_sku(
+        sku="0340162",  # Same SKU
+        supplier_id=supplier.id,
+        name="Ecoply Plus 2400x1200mm 9mm Structural Plywood",  # New name
+        category="Building Materials",
+        unit="per sheet"
+    )
+
+    # Test 4: Save another price (should be same product ID)
+    db.save_price(
+        product_id=product_updated.id,
+        supplier_id=supplier.id,
+        price=47.50,
+        in_stock=True
+    )
+
+    # Test 5: Check price history
+    history = db.get_price_history(product.id, days=30)
+    print(f"\n--- Price History for Product {product.id} ---")
+    for record in history:
+        print(f"  {record.scraped_at}: ${record.price}")
+
+    # Test 6: Get statistics
     stats = db.get_statistics()
-    print("\nDatabase Statistics:")
+    print("\n--- Database Statistics ---")
     for key, value in stats.items():
         print(f"  {key}: {value}")
+
+    # Test 7: Check for duplicates
+    duplicates = db.find_duplicate_products()
+    print(f"\n--- Duplicate Check ---")
+    print(f"  Duplicates found: {len(duplicates)}")
 
     db.close()
     print("\n✅ Database test complete!")

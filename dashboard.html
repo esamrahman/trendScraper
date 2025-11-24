@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bunnings Price Tracker - Professional Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .header-subtitle {
+            color: #666;
+            font-size: 18px;
+            margin-top: 8px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: #f8f9ff;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.15);
+        }
+
+        .stat-icon {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .stat-value {
+            font-size: 48px;
+            font-weight: 700;
+            color: #333;
+            line-height: 1;
+        }
+
+        .stat-change {
+            margin-top: 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .stat-change.positive {
+            color: #10b981;
+        }
+
+        .stat-change.negative {
+            color: #ef4444;
+        }
+
+        .stat-change.neutral {
+            color: #6b7280;
+        }
+
+        /* Tabs */
+        .tabs {
+            background: white;
+            border-radius: 20px;
+            padding: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            border-radius: 12px;
+            border: none;
+            background: transparent;
+            color: #666;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background: #f8f9ff;
+            color: #667eea;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Content Cards */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 35px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .card-subtitle {
+            color: #888;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        /* Product List */
+        .product-list {
+            max-height: 700px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .product-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .product-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .product-list::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+
+        .product-item {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            background: #fafafa;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .product-item:hover {
+            background: white;
+            border-color: #667eea;
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .product-item.selected {
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+            border-color: #667eea;
+        }
+
+        .product-name {
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .product-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .product-sku {
+            font-size: 13px;
+            color: #888;
+            font-weight: 500;
+        }
+
+        .product-price {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .product-badges {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Price Changes */
+        .change-item {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border-left: 4px solid;
+            background: #fafafa;
+            transition: all 0.3s ease;
+        }
+
+        .change-item:hover {
+            background: white;
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .change-drop {
+            border-color: #10b981;
+        }
+
+        .change-increase {
+            border-color: #ef4444;
+        }
+
+        .change-header {
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .change-prices {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .old-price {
+            text-decoration: line-through;
+            color: #999;
+            font-size: 18px;
+        }
+
+        .arrow {
+            color: #667eea;
+            font-size: 20px;
+        }
+
+        .new-price {
+            font-weight: 700;
+            font-size: 24px;
+            color: #333;
+        }
+
+        .change-amount {
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .change-down {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .change-up {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .change-meta {
+            color: #888;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            height: 500px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 15px;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .empty-state-text {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 30px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 32px;
+            }
+
+            .stat-value {
+                font-size: 36px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                width: 100%;
+                text-align: center;
+            }
+
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .header-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Filters */
+        .filters {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 15px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Alert Box */
+        .alert {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <div>
+                    <h1>🔨 Bunnings Price Tracker</h1>
+                    <p class="header-subtitle">Track building material prices across Australia • Save thousands on your next build</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn" onclick="exportCSV()">
+                        📥 Export CSV
+                    </button>
+                    <button class="btn" onclick="location.reload()">
+                        🔄 Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-label">Products Tracked</div>
+                <div class="stat-value" id="stat-products">-</div>
+                <div class="stat-change neutral" id="stat-products-change">Loading...</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-label">Price Records</div>
+                <div class="stat-value" id="stat-records">-</div>
+                <div class="stat-change neutral" id="stat-records-change">Total data points</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📉</div>
+                <div class="stat-label">Price Drops (7d)</div>
+                <div class="stat-value" id="stat-drops">-</div>
+                <div class="stat-change positive" id="stat-drops-change">Buy now opportunities</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-label">Price Increases (7d)</div>
+                <div class="stat-value" id="stat-increases">-</div>
+                <div class="stat-change negative" id="stat-increases-change">Consider waiting</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('overview')">
+                📈 Overview
+            </button>
+            <button class="tab" onclick="showTab('products')">
+                📦 All Products
+            </button>
+            <button class="tab" onclick="showTab('changes')">
+                🔔 Price Changes
+            </button>
+            <button class="tab" onclick="showTab('alerts')">
+                ⚡ Best Deals
+            </button>
+        </div>
+
+        <!-- Tab Content: Overview -->
+        <div id="tab-overview" class="tab-content active">
+            <div class="content-grid">
+                <!-- Recent Changes -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2 class="card-title">📊 Recent Price Changes</h2>
+                            <p class="card-subtitle">Last 7 days</p>
+                        </div>
+                    </div>
+                    <div id="recent-changes" class="product-list">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            <p>Loading price changes...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Products -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2 class="card-title">💰 Top Products</h2>
+                            <p class="card-subtitle">By price</p>
+                        </div>
+                    </div>
+                    <div id="top-products" class="product-list">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            <p>Loading products...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">📈 Price Trends</h2>
+                        <p class="card-subtitle" id="chart-subtitle">Select a product to view price history</p>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: All Products -->
+        <div id="tab-products" class="tab-content">
+            <div class="card">
+                <!-- Filters -->
+                <div class="filters">
+                    <div class="filter-group">
+                        <label class="filter-label">Category</label>
+                        <select class="filter-select" id="filter-category" onchange="filterProducts()">
+                            <option value="all">All Categories</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Stock Status</label>
+                        <select class="filter-select" id="filter-stock" onchange="filterProducts()">
+                            <option value="all">All Products</option>
+                            <option value="in-stock">In Stock</option>
+                            <option value="out-of-stock">Out of Stock</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Sort By</label>
+                        <select class="filter-select" id="filter-sort" onchange="filterProducts()">
+                            <option value="name">Name (A-Z)</option>
+                            <option value="price-low">Price (Low to High)</option>
+                            <option value="price-high">Price (High to Low)</option>
+                            <option value="sku">SKU</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="all-products-list" class="product-list">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>Loading all products...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Price Changes -->
+        <div id="tab-changes" class="tab-content">
+            <div class="alert alert-info">
+                <strong>💡 Tip:</strong> Products showing price changes in the last 7-30 days. Green indicates drops (buy now!), red indicates increases.
+            </div>
+
+            <div class="content-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2 class="card-title">📉 All Price Changes</h2>
+                            <p class="card-subtitle">Last 30 days</p>
+                        </div>
+                    </div>
+                    <div id="all-changes" class="product-list">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            <p>Loading changes...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2 class="card-title">📊 Change Summary</h2>
+                            <p class="card-subtitle">Statistics</p>
+                        </div>
+                    </div>
+                    <div id="change-summary">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            <p>Calculating...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Best Deals -->
+        <div id="tab-alerts" class="tab-content">
+            <div class="content-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2 class="card-title">🎯 Buy Now</h2>
+                            <p class="card-subtitle">Products with price drops</p>
+                        </div>
+                    </div>
+                    <div id="deals-buy" class="product-list">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            <p>Finding deals...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2 class="card-title">⏰ Wait & Watch</h2>
+                            <p class="card-subtitle">Products with price increases</p>
+                        </div>
+                    </div>
+                    <div id="deals-wait" class="product-list">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            <p>Analyzing prices...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Built with ❤️ for Australian builders and contractors</p>
+            <p style="margin-top: 10px; opacity: 0.8;">
+                Last updated: <span id="last-updated">-</span> •
+                <a href="#" onclick="location.reload()">Refresh Data</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // This dashboard requires the Python API backend to be running
+        // Run: python api.py
+
+        const API_URL = 'http://localhost:5000/api';
+
+        let allProducts = [];
+        let allChanges = [];
+        let priceChart = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllData();
+        });
+
+        // Load all data
+        async function loadAllData() {
+            try {
+                // Load stats
+                await loadStats();
+
+                // Load products
+                await loadProducts();
+
+                // Load changes
+                await loadChanges();
+
+                // Update timestamp
+                document.getElementById('last-updated').textContent = new Date().toLocaleString();
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError();
+            }
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_URL}/stats`);
+                const stats = await response.json();
+
+                document.getElementById('stat-products').textContent = stats.total_products;
+                document.getElementById('stat-records').textContent = stats.total_records.toLocaleString();
+                document.getElementById('stat-drops').textContent = stats.price_drops;
+                document.getElementById('stat-increases').textContent = stats.price_increases;
+
+                // Update change indicators
+                document.getElementById('stat-products-change').textContent = `${stats.products_in_stock} in stock`;
+                document.getElementById('stat-drops-change').textContent = `💰 Save money on ${stats.price_drops} products`;
+                document.getElementById('stat-increases-change').textContent = `⏰ ${stats.price_increases} products increased`;
+
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Load products
+        async function loadProducts() {
+            try {
+                const response = await fetch(`${API_URL}/products`);
+                allProducts = await response.json();
+
+                if (allProducts.length === 0) {
+                    showEmptyState();
+                    return;
+                }
+
+                // Populate category filter
+                const categories = [...new Set(allProducts.map(p => p.category))];
+                const categoryFilter = document.getElementById('filter-category');
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat;
+                    option.textContent = cat;
+                    categoryFilter.appendChild(option);
+                });
+
+                // Display products
+                displayTopProducts();
+                displayAllProducts();
+
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+
+        // Load price changes
+        async function loadChanges() {
+            try {
+                const response = await fetch(`${API_URL}/changes/30`);
+                allChanges = await response.json();
+
+                displayRecentChanges();
+                displayAllChanges();
+                displayDeals();
+                displayChangeSummary();
+
+            } catch (error) {
+                console.error('Error loading changes:', error);
+            }
+        }
+
+        // Display top products
+        function displayTopProducts() {
+            const container = document.getElementById('top-products');
+            const sorted = [...allProducts].sort((a, b) => b.price - a.price);
+
+            container.innerHTML = sorted.slice(0, 10).map(p => `
+                <div class="product-item" onclick="loadChart(${p.id}, '${p.name}')">
+                    <div class="product-name">${p.name}</div>
+                    <div class="product-meta">
+                        <span class="product-sku">SKU: ${p.sku}</span>
+                        <span class="product-price">$${p.price.toFixed(2)}</span>
+                    </div>
+                    <div class="product-badges">
+                        <span class="badge ${p.in_stock ? 'badge-success' : 'badge-danger'}">
+                            ${p.in_stock ? '✓ In Stock' : '✗ Out of Stock'}
+                        </span>
+                        <span class="badge badge-info">${p.category}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Display all products
+        function displayAllProducts() {
+            filterProducts();
+        }
+
+        // Filter products
+        function filterProducts() {
+            const category = document.getElementById('filter-category').value;
+            const stock = document.getElementById('filter-stock').value;
+            const sort = document.getElementById('filter-sort').value;
+
+            let filtered = [...allProducts];
+
+            // Filter by category
+            if (category !== 'all') {
+                filtered = filtered.filter(p => p.category === category);
+            }
+
+            // Filter by stock
+            if (stock === 'in-stock') {
+                filtered = filtered.filter(p => p.in_stock);
+            } else if (stock === 'out-of-stock') {
+                filtered = filtered.filter(p => !p.in_stock);
+            }
+
+            // Sort
+            if (sort === 'name') {
+                filtered.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (sort === 'price-low') {
+                filtered.sort((a, b) => a.price - b.price);
+            } else if (sort === 'price-high') {
+                filtered.sort((a, b) => b.price - a.price);
+            } else if (sort === 'sku') {
+                filtered.sort((a, b) => a.sku.localeCompare(b.sku));
+            }
+
+            const container = document.getElementById('all-products-list');
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <div class="empty-state-title">No products found</div>
+                        <div class="empty-state-text">Try adjusting your filters</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(p => `
+                <div class="product-item" onclick="loadChart(${p.id}, '${p.name}')">
+                    <div class="product-name">${p.name}</div>
+                    <div class="product-meta">
+                        <span class="product-sku">SKU: ${p.sku}</span>
+                        <span class="product-price">$${p.price.toFixed(2)}</span>
+                    </div>
+                    <div class="product-badges">
+                        <span class="badge ${p.in_stock ? 'badge-success' : 'badge-danger'}">
+                            ${p.in_stock ? '✓ In Stock' : '✗ Out of Stock'}
+                        </span>
+                        <span class="badge badge-info">${p.category}</span>
+                        ${p.url ? `<a href="${p.url}" target="_blank" style="text-decoration: none;"><span class="badge badge-warning">View on Bunnings →</span></a>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Display recent changes
+        function displayRecentChanges() {
+            const container = document.getElementById('recent-changes');
+            const recent = allChanges.slice(0, 10);
+
+            if (recent.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <div class="empty-state-title">No price changes yet</div>
+                        <div class="empty-state-text">Keep collecting data for 2-3 weeks to see price trends</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = recent.map(c => renderChange(c)).join('');
+        }
+
+        // Display all changes
+        function displayAllChanges() {
+            const container = document.getElementById('all-changes');
+
+            if (allChanges.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <div class="empty-state-title">No price changes detected</div>
+                        <div class="empty-state-text">Keep collecting data to track price movements</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = allChanges.map(c => renderChange(c)).join('');
+        }
+
+        // Display change summary
+        function displayChangeSummary() {
+            const container = document.getElementById('change-summary');
+
+            if (allChanges.length === 0) {
+                container.innerHTML = `<div class="empty-state-text">No data yet</div>`;
+                return;
+            }
+
+            const drops = allChanges.filter(c => c.change_amount < 0);
+            const increases = allChanges.filter(c => c.change_amount > 0);
+
+            const totalSavings = drops.reduce((sum, c) => sum + Math.abs(c.change_amount), 0);
+            const avgDrop = drops.length > 0 ? totalSavings / drops.length : 0;
+            const maxDrop = drops.length > 0 ? Math.max(...drops.map(c => Math.abs(c.change_amount))) : 0;
+
+            container.innerHTML = `
+                <div style="padding: 20px;">
+                    <div class="stat-card" style="margin-bottom: 20px;">
+                        <div class="stat-label">Total Potential Savings</div>
+                        <div class="stat-value" style="font-size: 36px; color: #10b981;">$${totalSavings.toFixed(2)}</div>
+                        <div class="stat-change positive">${drops.length} products with price drops</div>
+                    </div>
+
+                    <div class="stat-card" style="margin-bottom: 20px;">
+                        <div class="stat-label">Average Drop</div>
+                        <div class="stat-value" style="font-size: 36px;">$${avgDrop.toFixed(2)}</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">Biggest Drop</div>
+                        <div class="stat-value" style="font-size: 36px;">$${maxDrop.toFixed(2)}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display deals
+        function displayDeals() {
+            const drops = allChanges.filter(c => c.change_amount < 0).slice(0, 10);
+            const increases = allChanges.filter(c => c.change_amount > 0).slice(0, 10);
+
+            const buyContainer = document.getElementById('deals-buy');
+            const waitContainer = document.getElementById('deals-wait');
+
+            if (drops.length === 0) {
+                buyContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎯</div>
+                        <div class="empty-state-title">No price drops detected</div>
+                        <div class="empty-state-text">Check back soon for deals</div>
+                    </div>
+                `;
+            } else {
+                buyContainer.innerHTML = drops.map(c => `
+                    <div class="change-item change-drop">
+                        <div class="change-header">${c.name}</div>
+                        <div class="change-prices">
+                            <span class="old-price">$${c.previous_price.toFixed(2)}</span>
+                            <span class="arrow">→</span>
+                            <span class="new-price">$${c.current_price.toFixed(2)}</span>
+                        </div>
+                        <span class="change-amount change-down">
+                            💰 Save $${Math.abs(c.change_amount).toFixed(2)} (${Math.abs(c.change_percent).toFixed(1)}%)
+                        </span>
+                        <div class="change-meta">SKU: ${c.sku}</div>
+                    </div>
+                `).join('');
+            }
+
+            if (increases.length === 0) {
+                waitContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⏰</div>
+                        <div class="empty-state-title">No price increases</div>
+                        <div class="empty-state-text">All good! Prices are stable</div>
+                    </div>
+                `;
+            } else {
+                waitContainer.innerHTML = increases.map(c => `
+                    <div class="change-item change-increase">
+                        <div class="change-header">${c.name}</div>
+                        <div class="change-prices">
+                            <span class="old-price">$${c.previous_price.toFixed(2)}</span>
+                            <span class="arrow">→</span>
+                            <span class="new-price">$${c.current_price.toFixed(2)}</span>
+                        </div>
+                        <span class="change-amount change-up">
+                            ⚠️ Up $${c.change_amount.toFixed(2)} (${c.change_percent.toFixed(1)}%)
+                        </span>
+                        <div class="change-meta">SKU: ${c.sku}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Render single change
+        function renderChange(c) {
+            const isDown = c.change_amount < 0;
+            const changeClass = isDown ? 'change-drop' : 'change-increase';
+            const amountClass = isDown ? 'change-down' : 'change-up';
+            const icon = isDown ? '📉' : '📈';
+
+            return `
+                <div class="change-item ${changeClass}">
+                    <div class="change-header">${icon} ${c.name}</div>
+                    <div class="change-prices">
+                        <span class="old-price">$${c.previous_price.toFixed(2)}</span>
+                        <span class="arrow">→</span>
+                        <span class="new-price">$${c.current_price.toFixed(2)}</span>
+                        <span class="change-amount ${amountClass}">
+                            ${isDown ? '↓' : '↑'} $${Math.abs(c.change_amount).toFixed(2)} (${Math.abs(c.change_percent).toFixed(1)}%)
+                        </span>
+                    </div>
+                    <div class="change-meta">
+                        SKU: ${c.sku} • ${new Date(c.current_date).toLocaleDateString()}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Load chart
+        async function loadChart(productId, productName) {
+            try {
+                document.getElementById('chart-subtitle').textContent = `Price history for ${productName}`;
+
+                const response = await fetch(`${API_URL}/product/${productId}/history`);
+                const history = await response.json();
+
+                if (history.length < 2) {
+                    alert('Not enough price history yet. Keep collecting data!');
+                    return;
+                }
+
+                const dates = history.map(h => new Date(h.date).toLocaleDateString());
+                const prices = history.map(h => h.price);
+
+                const ctx = document.getElementById('priceChart').getContext('2d');
+
+                if (priceChart) {
+                    priceChart.destroy();
+                }
+
+                priceChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Price (AUD)',
+                            data: prices,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: '#667eea',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                cornerRadius: 8,
+                                titleFont: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                bodyFont: {
+                                    size: 13
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Price: $' + context.parsed.y.toFixed(2);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    },
+                                    callback: function(value) {
+                                        return '$' + value.toFixed(2);
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            }
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error loading chart:', error);
+                alert('Error loading price history');
+            }
+        }
+
+        // Export CSV
+        function exportCSV() {
+            if (allProducts.length === 0) {
+                alert('No data to export!');
+                return;
+            }
+
+            let csv = 'Product Name,SKU,Category,Price,In Stock,Last Updated\n';
+
+            allProducts.forEach(p => {
+                csv += `"${p.name}","${p.sku}","${p.category}",${p.price},${p.in_stock ? 'Yes' : 'No'},"${p.last_updated}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bunnings_prices_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Show tab
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active from all tab buttons
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            // Set active button
+            event.target.classList.add('active');
+        }
+
+        // Show error state
+        function showError() {
+            document.body.innerHTML = `
+                <div class="container">
+                    <div class="card" style="margin-top: 100px; text-align: center; padding: 60px;">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div class="empty-state-title">Cannot Connect to API</div>
+                        <div class="empty-state-text" style="margin-bottom: 30px;">
+                            Make sure the API backend is running:<br><br>
+                            <code style="background: #f0f0f0; padding: 10px 20px; border-radius: 8px; display: inline-block;">python api.py</code>
+                        </div>
+                        <button class="btn" onclick="location.reload()">Try Again</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Show empty state
+        function showEmptyState() {
+            document.body.innerHTML = `
+                <div class="container">
+                    <div class="card" style="margin-top: 100px; text-align: center; padding: 60px;">
+                        <div class="empty-state-icon">📦</div>
+                        <div class="empty-state-title">No Products Found</div>
+                        <div class="empty-state-text" style="margin-bottom: 30px;">
+                            Run the collector to start tracking prices:<br><br>
+                            <code style="background: #f0f0f0; padding: 10px 20px; border-radius: 8px; display: inline-block;">python collector.py --products-file products.json</code>
+                        </div>
+                        <button class="btn" onclick="location.reload()">Refresh</button>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

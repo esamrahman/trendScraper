@@ -11,7 +11,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pipeline.collector import DataCollector
+from collector import DataCollector
 import logging
 
 logging.basicConfig(
