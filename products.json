@@ -1,0 +1,44 @@
+{
+  "products": [
+    {
+      "url": "https://www.bunnings.com.au/ecoply-2400-x-1200mm-9mm-plywood-pine-structural-cd-grade_p0340162",
+      "name": "Ecoply 9mm Structural Plywood (2400x1200mm)"
+    },
+    {
+      "url": "https://www.bunnings.com.au/ecoply-2400-x-1200mm-17mm-plywood-pine-structural-cd-grade_p0340166",
+      "name": "Ecoply 17mm Structural Plywood (2400x1200mm)"
+    },
+    {
+      "url": "https://www.bunnings.com.au/90-x-45mm-framing-mgp10-untreated-pine-2-4m_p8030079",
+      "name": "90x45mm MGP10 Pine Framing Timber 2.4m"
+    },
+    {
+      "url": "https://www.bunnings.com.au/90-x-45mm-framing-mgp10-untreated-pine-3-0m_p8030081",
+      "name": "90x45mm MGP10 Pine Framing Timber 3.0m"
+    },
+    {
+      "url": "https://www.bunnings.com.au/gyprock-csr-2400-x-1200-x-10mm-2-88sqm-plasterboard-re_p0731415",
+      "name": "Gyprock 10mm Plasterboard (2400x1200mm)"
+    },
+    {
+      "url": "https://www.bunnings.com.au/gyprock-csr-2400-x-1200-x-10mm-2-88sqm-aquachek-plasterboard-re_p0730710",
+      "name": "Gyprock Aquachek 10mm Moisture Resistant Plasterboard (2400x1200mm)"
+    },
+    {
+      "url": "https://www.bunnings.com.au/australian-builders-20kg-high-strength-concrete-mix_p0761537",
+      "name": "Australian Builders 20kg High Strength Concrete Mix"
+    },
+    {
+      "url": "https://www.bunnings.com.au/dingo-20kg-hi-strength-concrete_p0760378",
+      "name": "Dingo 20kg Hi-Strength Concrete"
+    },
+    {
+      "url": "https://www.bunnings.com.au/bastion-20kg-general-purpose-cement_p0102619",
+      "name": "Bastion 20kg General Purpose Cement"
+    },
+    {
+      "url": "https://www.bunnings.com.au/maxpro-20kg-concrete-mix_p0097689",
+      "name": "MaxPRO 20kg Concrete Mix"
+    }
+  ]
+}
